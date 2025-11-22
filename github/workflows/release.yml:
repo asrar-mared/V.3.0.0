@@ -1,0 +1,46 @@
+name: Build & Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests (لو عندك tests)
+        run: npm test || echo "No tests found"
+
+      - name: Build project
+        run: npm run build --if-present
+
+      - name: Create Release Assets (اختياري – لو عايز zip)
+        run: |
+          zip -r warrior-lion-v${{ github.event.release.tag_name }}.zip dist/ || echo "No dist folder"
+
+      - name: Upload Release Asset
+        if: github.event.release.tag_name
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: warrior-lion-v${{ github.event.release.tag_name }}.zip
+          asset_name: warrior-lion-v${{github.event.release.tag_name}}.zip
+          asset_content_type: application/zip
